@@ -1,0 +1,271 @@
+Biblioteka standardowa j¿zyka C++ udost¿pnia bardzo przydatne kontenery (np. set, map czy multimap), których nie ma w bibliotece C. Kontener multimap (mapa wielokrotna) umo¿liwia przechowywanie par (klucz, warto¿¿), pozwalaj¿c na wyst¿powanie wi¿cej ni¿ jednej warto¿ci pod jednym kluczem.
+
+Cz¿sto potrzebujemy ¿¿czy¿ kod C++ z kodem spadkowym w C. Celem tego zadania jest napisanie w C++ dwóch modu¿ów obs¿uguj¿cych sieci (skierowane), tzn. grafy skierowane z w¿z¿ami etykietowanymi napisami, tak aby mo¿na ich by¿o u¿ywa¿ w C. Ka¿dy modu¿ sk¿ada si¿ z pliku nag¿ówkowego (z rozszerzeniem h) i pliku z imlementacj¿ (z rozszerzeniem cc).
+
+Modu¿ growingnet (pliki growingnet.h i growingnet.cc) powinien udost¿pnia¿ sta¿¿:
+
+const unsigned long growingnet;
+
+    Powy¿sza sta¿a jest identyfikatorem Globalnej Sieci Rosn¿cej. Do sieci rosn¿cej mo¿na dodawa¿ w¿z¿y i kraw¿dzie, ale nie mo¿na ich usuwa¿.
+
+Modu¿ network (pliki network.h i network.cc) powinien udost¿pnia¿ nast¿puj¿ce funkcje:
+
+unsigned long network_new(int growing);
+
+      Tworzy now¿, pust¿, sie¿ i zwraca jej identyfikator. Sie¿ pusta, to sie¿ z pustym zbiorem w¿z¿ów. Parametr growing mówi o tym, czy nowa sie¿ ma by¿ rosn¿ca (growing != 0) czy nie (growing == 0).
+
+void network_delete(unsigned long id);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id, to usuwa sie¿, a w przeciwnym przypadku nic nie robi.
+
+size_t network_nodes_number(unsigned long id);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id, zwraca liczb¿ jej w¿z¿ów, a w przeciwnym przypadku zwraca 0.
+
+size_t network_links_number(unsigned long id);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id, zwraca liczb¿ jej kraw¿dzi, a w przeciwnym przypadku zwraca 0.
+
+void network_add_node(unsigned long id, const char* label);
+
+     Je¿eli istnieje sie¿ o identyfikatorze id, label != NULL i sie¿ ta nie zawiera jeszcze w¿z¿a o etykiecie label, to dodaje w¿ze¿ o etykiecie label do sieci, a w przeciwnym przypadku nic nie robi.
+
+void network_add_link(unsigned long id, const char* slabel, const char* tlabel);
+
+     Je¿eli istnieje sie¿ o identyfikatorze id, slabel != NULL oraz tlabel != NULL, i sie¿ ta nie zawiera jeszcze kraw¿dzi (slabel, tlabel), to dodaje kraw¿d¿ (slabel, tlabel) do sieci, a w przeciwnym przypadu nic nie robi. Je¿eli w sieci nie istnieje w¿ze¿ o etykiecie którego¿ z ko¿ców kraw¿dzi, to jest on równie¿ dodawany.
+
+void network_remove_node(unsigned long id, const char* label);
+
+      Je¿eli istnieje sie¿ o identyfikatorze, a w niej w¿ze¿ o etykiecie label oraz sie¿ nie jest rosn¿ca, to usuwa w¿ze¿ z sieci wraz ze wszystkimi kraw¿dziami wchodz¿cymi i wychodz¿cymi, a w przeciwnym przypadku nic nie robi.
+
+void network_remove_link(unsigned long id, const char* slabel, const char* tlabel);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id, a w niej kraw¿d¿ (slabel, tlabel), oraz sie¿ nie jest rosn¿ca, to usuwa kraw¿d¿ z sieci, a w przeciwnym przypadku nic nie robi.
+
+void network_clear(unsigned long id);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id i sie¿ nie jest rosn¿ca, usuwa wszystkie jej w¿z¿y i kraw¿dzie, a w przeciwnym przypadku nic nie robi.
+
+size_t network_out_degree(unsigned long id, const char* label);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id, a w niej w¿ze¿ o etykiecie label, to zwraca ilo¿¿ kraw¿dzi wychodz¿cych z tego w¿z¿a, a w przeciwnym przypadku zwraca 0.
+
+size_t network_in_degree(unsigned long id, const char* label);
+
+      Je¿eli istnieje sie¿ o identyfikatorze id, a w niej w¿ze¿ o etykiecie label, to zwraca ilo¿¿ kraw¿dzi wchodz¿cych do tego w¿z¿a, a w przeciwnym przypadku zwraca 0.
+
+
+
+Modu¿y maj¿ by¿ kompilowane w dwóch wersjach.
+
+* Wersja diagnostyczna (debuglevel=1) powinna:
+    ** zawiera¿ informacj¿ uruchomieniow¿ pozwalaj¿c¿ otworzy¿ tekst ¿ród¿owy w debugerze,
+    ** by¿ kompilowana bez optymalizacji,
+    ** dok¿adnie sprawdza¿ przekazane argumenty,
+    ** wypisywa¿ informacje uruchomieniowe na standardowy strumie¿ b¿¿dów.
+
+* Wersja zoptymalizowana (debuglevel=0) powinna:
+    ** by¿ pozbawiona wszelkich informacji uruchomieniowych,
+    ** by¿ optymalizowana ze wzgl¿du na szybko¿¿ wykonywania,
+    ** zak¿ada¿, ¿e przekazane argumenty s¿ poprawne.
+
+Rozwi¿zanie powinno zawiera¿:
+
+* pliki network.h, network.cc, growingnet.h, growingnet.cc,
+* skrypt makefile umo¿liwiaj¿cy skompilowanie modu¿ów, tworz¿cy odpowiednio pliki network.o i growingnet.o; uruchomienie 'make' lub 'make debuglevel=0' powinno generowa¿ wersj¿ zoptymalizowan¿, a uruchomienie 'make debuglevel=1' powinno generowa¿ wersj¿ diagnostyczn¿.
+
+Przyk¿ad u¿ycia (wydruk pliku network_test1.c):
+
+#include <assert.h>
+#include <stdio.h>
+#include "network.h"
+#include "growingnet.h"
+
+int main()
+{
+    unsigned long n;
+
+    n = network_new(0);
+
+    network_add_link(n, "Kabaty", "Natolin");
+    assert(network_nodes_number(n) == 2);
+    assert(network_links_number(n) == 1);
+    assert(network_out_degree(n, "Kabaty") == 1);
+    assert(network_in_degree(n, "Kabaty") == 0);
+    assert(network_out_degree(n, "Natolin") == 0);
+    assert(network_in_degree(n, "Natolin") == 1);
+
+    network_add_link(n, "Natolin", "Imielin");
+    assert(network_nodes_number(n) == 3);
+    assert(network_links_number(n) == 2);
+    assert(network_out_degree(n, "Natolin") == 1);
+    assert(network_in_degree(n, "Natolin") == 1);
+    assert(network_out_degree(n, "Imielin") == 0);
+    assert(network_in_degree(n, "Imielin") == 1);
+
+    network_add_link(n, "Imielin", "Stok¿osy");
+    assert(network_nodes_number(n) == 4);
+    assert(network_links_number(n) == 3);
+    assert(network_out_degree(n, "Imielin") == 1);
+    assert(network_in_degree(n, "Imielin") == 1);
+    assert(network_out_degree(n, "Stok¿osy") == 0);
+    assert(network_in_degree(n, "Stok¿osy") == 1);
+
+    network_remove_link(n, "Kabaty", "Natolin");
+    assert(network_nodes_number(n) == 4);
+    assert(network_links_number(n) == 2);
+    assert(network_out_degree(n, "Kabaty") == 0);
+    assert(network_in_degree(n, "Kabaty") == 0);
+    assert(network_out_degree(n, "Natolin") == 1);
+    assert(network_in_degree(n, "Natolin") == 0);
+
+    network_remove_node(n, "Imielin");
+    assert(network_nodes_number(n) == 3);
+    assert(network_links_number(n) == 0);
+    assert(network_out_degree(n, "Kabaty") == 0);
+    assert(network_in_degree(n, "Kabaty") == 0);
+    assert(network_out_degree(n, "Natolin") == 0);
+    assert(network_in_degree(n, "Natolin") == 0);
+    assert(network_out_degree(n, "Stok¿osy") == 0);
+    assert(network_in_degree(n, "Stok¿osy") == 0);
+
+    network_add_node(n, "Imielin");
+    assert(network_nodes_number(n) == 4);
+    assert(network_links_number(n) == 0);
+    assert(network_out_degree(n, "Imielin") == 0);
+    assert(network_in_degree(n, "Imielin") == 0);
+
+    network_add_link(n, "Kabaty", "Kabaty");
+    assert(network_nodes_number(n) == 4);
+    assert(network_links_number(n) == 1);
+    assert(network_out_degree(n, "Kabaty") == 1);
+    assert(network_in_degree(n, "Kabaty") == 1);
+
+    network_clear(n);
+
+    network_add_link(growingnet, "0", "0");
+    assert(network_nodes_number(growingnet) == 1);
+    assert(network_links_number(growingnet) == 1);
+    assert(network_out_degree(growingnet, "0") == 1);
+    assert(network_in_degree(growingnet, "0") == 1);
+
+    network_remove_node(growingnet, "0");
+    assert(network_nodes_number(growingnet) == 1);
+    assert(network_links_number(growingnet) == 1);
+    assert(network_out_degree(growingnet, "0") == 1);
+    assert(network_in_degree(growingnet, "0") == 1);
+
+    return 0;
+}
+
+Plik network_test1.c mo¿na skompilowa¿ i po¿¿czy¿ z modu¿ami za pomoc¿ polece¿:
+
+gcc -Wall -O2 -c network_test1.c -o network_test1.o
+g++ network_test1.o growingnet.o network.o -o network_test1
+
+Przyk¿ad informacji diagnostycznych wypisywanych przez powy¿szy
+przyk¿ad u¿ycia:
+
+network_new(1)
+network_new: network 0 created
+network_new(0)
+network_new: network 1 created
+network_add_link(1, Kabaty, Natolin)
+network_add_link: network 1, link (Kabaty,Natolin) added
+network_nodes_number(1)
+network_nodes_number: network 1 contains 2 nodes
+network_links_number(1)
+network_links_number: network 1 contains 1 links
+network_out_degree(1, Kabaty)
+network_in_degree(1, Kabaty)
+network_out_degree(1, Natolin)
+network_in_degree(1, Natolin)
+network_add_link(1, Natolin, Imielin)
+network_add_link: network 1, link (Natolin,Imielin) added
+network_nodes_number(1)
+network_nodes_number: network 1 contains 3 nodes
+network_links_number(1)
+network_links_number: network 1 contains 2 links
+network_out_degree(1, Natolin)
+network_in_degree(1, Natolin)
+network_out_degree(1, Imielin)
+network_in_degree(1, Imielin)
+network_add_link(1, Imielin, Stok¿osy)
+network_add_link: network 1, link (Imielin,Stok¿osy) added
+network_nodes_number(1)
+network_nodes_number: network 1 contains 4 nodes
+network_links_number(1)
+network_links_number: network 1 contains 3 links
+network_out_degree(1, Imielin)
+network_in_degree(1, Imielin)
+network_out_degree(1, Stok¿osy)
+network_in_degree(1, Stok¿osy)
+network_remove_link(1, Kabaty, Natolin)
+network_remove_link: link (Kabaty,Natolin) removed from network 1
+network_nodes_number(1)
+network_nodes_number: network 1 contains 4 nodes
+network_links_number(1)
+network_links_number: network 1 contains 2 links
+network_out_degree(1, Kabaty)
+network_in_degree(1, Kabaty)
+network_out_degree(1, Natolin)
+network_in_degree(1, Natolin)
+network_remove_node(1, Imielin)
+network_remove_node: network 1, node Imielin removed
+network_nodes_number(1)
+network_nodes_number: network 1 contains 3 nodes
+network_links_number(1)
+network_links_number: network 1 contains 0 links
+network_out_degree(1, Kabaty)
+network_in_degree(1, Kabaty)
+network_out_degree(1, Natolin)
+network_in_degree(1, Natolin)
+network_out_degree(1, Stok¿osy)
+network_in_degree(1, Stok¿osy)
+network_add_node(1, Imielin)
+network_add_node: network 1, node Imielin added
+network_nodes_number(1)
+network_nodes_number: network 1 contains 4 nodes
+network_links_number(1)
+network_links_number: network 1 contains 0 links
+network_out_degree(1, Imielin)
+network_in_degree(1, Imielin)
+network_add_link(1, Kabaty, Kabaty)
+network_add_link: network 1, link (Kabaty,Kabaty) added
+network_nodes_number(1)
+network_nodes_number: network 1 contains 4 nodes
+network_links_number(1)
+network_links_number: network 1 contains 1 links
+network_out_degree(1, Kabaty)
+network_in_degree(1, Kabaty)
+network_clear(1)
+network_clear: network 1 cleared
+network_add_link(0, 0, 0)
+network_add_link: network 0, link (0,0) added
+network_nodes_number(0)
+network_nodes_number: network 0 contains 1 nodes
+network_links_number(0)
+network_links_number: network 0 contains 1 links
+network_out_degree(0, 0)
+network_in_degree(0, 0)
+network_remove_node(0, 0)
+network_remove_node: attempt to remove node from grow-only network
+network_nodes_number(0)
+network_nodes_number: network 0 contains 1 nodes
+network_links_number(0)
+network_links_number: network 0 contains 1 links
+network_out_degree(0, 0)
+network_in_degree(0, 0)
+
+
+Oczekiwane rozwi¿zanie powinno korzysta¿ z kontenerów i metod udost¿pnianych przez standardow¿ bibliotek¿ C++. Nie nale¿y definiowa¿ w¿asnych struktur lub klas. Do implementacji sieci mo¿na u¿y¿ kontenerów multimap i/lub set. W rozwi¿zaniu nie nale¿y nadu¿ywa¿ kompilacji warunkowej. Fragmenty tekstu ¿ród¿owego realizuj¿ce wyspecyfikowane operacje na sieciach nie powinny zale¿e¿ od sposobu kompilacji (inaczej posiadanie wersji diagnostycznej nie mia¿oby sensu).
+
+Pliki rozwi¿zania nale¿y umie¿ci¿ w repozytorium w katalogu
+
+grupaN/zadanie2/ab123456+cd123456
+
+lub
+
+grupaN/zadanie2/ab123456+cd123456+ef123456
+
+gdzie N jest numerem grupy, a ab123456, cd123456, ef123456 s¿ identyfikatorami cz¿onków zespo¿u umieszczaj¿cego to rozwi¿zanie. Katalog z rozwi¿zaniem nie powinien zawiera¿ innych plików, ale mo¿e zawiera¿ podkatalog private, gdzie mo¿na umieszcza¿ ró¿ne pliki, np. swoje testy. Pliki umieszczone w tym podkatalogu nie b¿d¿ oceniane
