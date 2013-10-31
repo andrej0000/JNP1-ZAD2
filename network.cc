@@ -145,10 +145,10 @@ void network_delete(unsigned long id){
 size_t network_nodes_number(unsigned long id){
 	if(debug)	cerr <<"Nodes_number(" <<id <<")\n";
 
-	data_iterator net;
-	if(get_network(id, net))	return 0;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return 0;
 
-	size_t number = get<GRAPH>(net->second).size();
+	size_t number = get<GRAPH>(net_it->second).size();
 
 	if(debug)	cerr <<"Network " <<id <<" has "<<number <<"nodes.\n";
 	return number;
@@ -162,12 +162,12 @@ size_t network_nodes_number(unsigned long id){
 size_t network_links_number(unsigned long id){
 	if(debug)	cerr <<"Links_number(" <<id <<")\n";
 
-	data_iterator net;
-	if(get_network(id, net))	return 0;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return 0;
 
-	if(debug)	cerr <<"Network " <<id <<" has "<<get<LINKS_NUMBER>(net->second) <<"links.\n";
+	if(debug)	cerr <<"Network " <<id <<" has "<<get<LINKS_NUMBER>(net_it->second) <<"links.\n";
 
-	return get<LINKS_NUMBER>(net->second);
+	return get<LINKS_NUMBER>(net_it->second);
 }
 
 /**
@@ -181,18 +181,18 @@ void network_add_node(unsigned long id, const char * label){
 
 	if(is_null(label)) return;
 
-	data_iterator net;
-	if(get_network(id, net))	return;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return;
 
 	graph::iterator empty_node_iter;
-	if(!get_graph_iterator(net->second, label, empty_node_iter)) return;
+	if(!get_graph_iterator(net_it->second, label, empty_node_iter)) return;
 
-	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net->second);
+	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net_it->second);
 	cerr << "New node will have id: " << new_label_id << std::endl;
-	get<GRAPH>(net->second).insert(std::pair<label_id, node>(new_label_id, node()));
-	get<LABEL_MAP>(net->second).insert(std::pair<std::string, label_id>(label, new_label_id));
-	get<FIRST_FREE_LABEL_ID>(net->second) = new_label_id + 1;
-	cerr << "Next id " << get<FIRST_FREE_LABEL_ID>(net->second) << std::endl;
+	get<GRAPH>(net_it->second).insert(std::pair<label_id, node>(new_label_id, node()));
+	get<LABEL_MAP>(net_it->second).insert(std::pair<std::string, label_id>(label, new_label_id));
+	get<FIRST_FREE_LABEL_ID>(net_it->second) = new_label_id + 1;
+	cerr << "Next id " << get<FIRST_FREE_LABEL_ID>(net_it->second) << std::endl;
 
 	if(debug)	cerr << "Added " << label << " to network " << id << ".\n";
 
@@ -212,21 +212,21 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 
 	if(is_null(slabel) || is_null(tlabel)) return;
 
-	data_iterator net;
-	if(get_network(id, net))	return;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return;
 
 	graph::iterator snode_iter;
 	graph::iterator tnode_iter;
 
-	if(get_graph_iterator(net->second, slabel, snode_iter)){
+	if(get_graph_iterator(net_it->second, slabel, snode_iter)){
 		network_add_node(id, slabel);
 		//cerr << get<FIRST_FREE_LABEL_ID>(net_record);
-		if(get_graph_iterator(net->second, slabel, snode_iter) && debug)
+		if(get_graph_iterator(net_it->second, slabel, snode_iter) && debug)
 			cerr << "Fail\n";
 	}
-	if(get_graph_iterator(net->second, tlabel, tnode_iter)){
+	if(get_graph_iterator(net_it->second, tlabel, tnode_iter)){
 		network_add_node(id, tlabel);
-		if(get_graph_iterator(net->second, tlabel, tnode_iter) && debug)
+		if(get_graph_iterator(net_it->second, tlabel, tnode_iter) && debug)
 			cerr << "Fail\n";
 	}
 
@@ -239,7 +239,7 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 
 	(snode_iter->second).second.insert(tnode_iter->first);
 	(tnode_iter->second).first.insert(snode_iter->first);
-	get<LINKS_NUMBER>(net->second)++;
+	get<LINKS_NUMBER>(net_it->second)++;
 
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" added.\n";
 	return;
@@ -257,14 +257,14 @@ void network_remove_node(unsigned long id, const char* label){
 
 	if(is_null(label)) return;
 
-	data_iterator net;
-	if(get_network(id, net))	return;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return;
 
-	if(!can_remove(net->second)) return;
+	if(!can_remove(net_it->second)) return;
 
 	graph::iterator node_record_iter;
 
-	if(get_graph_iterator(net->second, label, node_record_iter)) return;
+	if(get_graph_iterator(net_it->second, label, node_record_iter)) return;
 
 	size_t links_connected_number = (node_record_iter->second).second.size() + (node_record_iter->second).first.size();
 
@@ -275,17 +275,17 @@ void network_remove_node(unsigned long id, const char* label){
 	//usuniencie krawedzi dualnych
 
 	for(set<label_id>::iterator li = (node_record_iter->second).first.begin(); li != (node_record_iter->second).first.end(); ++li){
-		graph::iterator other_node_iter = get<GRAPH>(net->second).find(*li);
+		graph::iterator other_node_iter = get<GRAPH>(net_it->second).find(*li);
 		(other_node_iter->second).second.erase(*li);
 	}
 	for(set<label_id>::iterator li = (node_record_iter->second).second.begin(); li != (node_record_iter->second).second.end(); ++li){
-		graph::iterator other_node_iter = get<GRAPH>(net->second).find(*li);
+		graph::iterator other_node_iter = get<GRAPH>(net_it->second).find(*li);
 		(other_node_iter->second).first.erase(*li);
 	}
 
-	get<LINKS_NUMBER>(net->second)-= links_connected_number;
-	get<GRAPH>(net->second).erase(node_record_iter);
-	get<LABEL_MAP>(net->second).erase(label);
+	get<LINKS_NUMBER>(net_it->second)-= links_connected_number;
+	get<GRAPH>(net_it->second).erase(node_record_iter);
+	get<LABEL_MAP>(net_it->second).erase(label);
 
 	if(debug)	cerr <<"Node " <<label <<" from network " <<id <<" removed.\n";
 	return;
@@ -302,14 +302,14 @@ void network_remove_link(unsigned long id, const char* slabel, const char* tlabe
 
 	if(is_null(slabel) || is_null(tlabel)) return;
 
-	data_iterator net;
-	if(get_network(id, net))	return;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return;
 
-	if(!can_remove(net->second)) return;
+	if(!can_remove(net_it->second)) return;
 
 	graph::iterator snode_iter, tnode_iter;
-	if(get_graph_iterator(net->second, slabel, snode_iter))	return;
-	if(get_graph_iterator(net->second, tlabel, tnode_iter))	return;
+	if(get_graph_iterator(net_it->second, slabel, snode_iter))	return;
+	if(get_graph_iterator(net_it->second, tlabel, tnode_iter))	return;
 
 	node snode = (snode_iter->second), tnode = tnode_iter->second;
 
@@ -321,7 +321,7 @@ void network_remove_link(unsigned long id, const char* slabel, const char* tlabe
 
 	(snode_iter->second).second.erase(s_iter);
 	(tnode_iter->second).first.erase(snode_iter->first);	//z wchodzących do tnode usuwam snode label_id
-	get<LINKS_NUMBER>(net->second)--;
+	get<LINKS_NUMBER>(net_it->second)--;
 
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" removed.\n";
 	return;
@@ -336,15 +336,15 @@ void network_remove_link(unsigned long id, const char* slabel, const char* tlabe
 void network_clear(unsigned long id){
 	if(debug)	cerr <<"Clear(" <<id <<")\n";
 
-	data_iterator net;
-	if(get_network(id, net))	return;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return;
 
-	if(!can_remove(net->second)) return;
+	if(!can_remove(net_it->second)) return;
 
-	get<LINKS_NUMBER>(net->second) = 0;
-	get<FIRST_FREE_LABEL_ID>(net->second) = 0;
-	get<LABEL_MAP>(net->second).clear();
-	get<GRAPH>(net->second).clear();
+	get<LINKS_NUMBER>(net_it->second) = 0;
+	get<FIRST_FREE_LABEL_ID>(net_it->second) = 0;
+	get<LABEL_MAP>(net_it->second).clear();
+	get<GRAPH>(net_it->second).clear();
 
 	if(debug)	cerr <<"Network " <<id <<" cleared.\n";
 	return;
@@ -362,11 +362,11 @@ size_t network_out_degree(unsigned long id, const char* label){
 	if(is_null(label)) return 0;
 
 
-	data_iterator net;
-	if(get_network(id, net))	return 0;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return 0;
 
 	graph::iterator node_record_iter;
-	if(get_graph_iterator(net->second, label, node_record_iter)) return 0;
+	if(get_graph_iterator(net_it->second, label, node_record_iter)) return 0;
 
 	size_t degree = (node_record_iter->second).second.size();
 
@@ -385,11 +385,11 @@ size_t network_in_degree(unsigned long id, const char* label){
 
 	if(is_null(label)) return 0;
 
-	data_iterator net;
-	if(get_network(id, net))	return 0;
+	data_iterator net_it;
+	if(get_network(id, net_it))	return 0;
 
 	graph::iterator node_record_iter;
-	if(get_graph_iterator(net->second, label, node_record_iter)) return 0;
+	if(get_graph_iterator(net_it->second, label, node_record_iter)) return 0;
 
 	size_t degree = (node_record_iter->second).first.size();
 
