@@ -1,10 +1,8 @@
 /**
  *	TODO LIST (Soszu):
  *
- *	sprawdzić działanie gdy nulle
  *	dopisać 3 funkcje
  *	sprawdzić czy działa
- *	ewentualne komentarze
  */
 
 #ifdef DEBUG
@@ -49,6 +47,11 @@ map<net_id, net >& get_data(){
 	return data;
 }
 
+/**
+ * jeśli siec o podanym id istnieje,
+ * to funkcja zwraca false i net_record przyjmuje wartość danych tej sieci
+ * a w przeciwnym wypadku funkcja zwraca true, a wartosć net_record jest nieokreślona
+ */
 bool get_network(unsigned long id, net &net_record){
 	data_iterator iter = get_data().find(id);
 
@@ -60,6 +63,11 @@ bool get_network(unsigned long id, net &net_record){
 	return false;
 }
 
+/**
+ * jeśli wierzchołek o etykiecie label jest zawarty w sieci id,
+ * to funkcja zwraca false i nod_record przyjmuje wartość danych tego wierzchołka
+ * a w przeciwnym wypadku funkcja zwraca true, a wartosć node_record jest nieokreślona
+ */
 bool get_node(net n, const char* label, node & node_record){
 	label_map lm = get<LABEL_MAP>(n);
 	label_map::iterator l_iter = lm.find(label);
@@ -72,6 +80,10 @@ bool get_node(net n, const char* label, node & node_record){
 	return false;
 }
 
+/**
+ * jeśli z sieci mogą być usuwane elementy,
+ * to funkcja zwraca true, false wpp.
+ */
 bool can_remove(net net_record){
 	if(get<IS_GROWING>(net_record)){
 		if(debug)	cerr <<"Attempt to remove something from grow-only network.\n";
@@ -79,6 +91,19 @@ bool can_remove(net net_record){
 	}
 	return false;
 }
+
+/**
+ * jeśli etykieta to NULL,
+ * to funkcja zwraca true, false wpp.
+ */
+bool is_null(const char* label){
+	if(label == NULL){
+		if(debug)	cerr <<"Attempt to use null label.\n";
+		return true;
+	}
+	return false;
+}
+
 
 /**
  * Tworzy nową, pustą, sieć i zwraca jej identyfikator.
@@ -158,6 +183,8 @@ size_t network_links_number(unsigned long id){
 void network_add_node(unsigned long id, const char* label){
 	if(debug)	cerr <<"Add_node(" <<id <<" " <<label <<")\n";
 
+	if(is_null(label)) return;
+
 	net net_record;
 	if(get_network(id, net_record))	return;
 
@@ -181,7 +208,9 @@ void network_add_node(unsigned long id, const char* label){
  * Jeżeli w sieci nie istnieje węzeł o etykiecie któregoś z końców krawędzi, to jest on również dodawany.
  */
 void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
-	if(debug)	cerr <<"Add_link(" <<id <<" " <<slabel <<" " <<tlabel <<")\n";
+	if(debug)	cerr <<"Add_link(" <<id <<" " <<slabel
+
+	if(is_null(slabel) || is_null(tlabel)) return;
 
 	net net_record;
 	if(get_network(id, net_record))	return;
@@ -202,6 +231,8 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
  */
 void network_remove_node(unsigned long id, const char* label){
 	if(debug)	cerr <<"Remove_node(" <<id <<" " <<label <<")\n";
+
+	if(is_null(label)) return;
 
 	net net_record;
 	if(get_network(id, net_record))	return;
@@ -233,9 +264,10 @@ void network_remove_node(unsigned long id, const char* label){
  * oraz sieć nie jest rosnąca,
  * to usuwa krawędź z sieci, a w przeciwnym przypadku nic nie robi.
  */
-void network_remove_link(unsigned long id, const char* slabel, const char* tlabel)
-{
+void network_remove_link(unsigned long id, const char* slabel, const char* tlabel){
 	if(debug)	cerr <<"Remove_link(" <<id <<" " <<slabel <<" " <<tlabel <<")\n";
+
+	if(is_null(slabel) || is_null(tlabel)) return;
 
 	net net_record;
 	if(get_network(id, net_record))	return;
@@ -278,9 +310,10 @@ void network_clear(unsigned long id){
  * to zwraca ilość krawędzi wychodzących z tego węzła,
  * a w przeciwnym przypadku zwraca 0.
  */
-size_t network_out_degree(unsigned long id, const char* label)
-{
+size_t network_out_degree(unsigned long id, const char* label){
 	if(debug)	cerr <<"Out_degree(" <<id <<" " <<label <<")\n";
+
+	if(is_null(label)) return 0;
 
 	net net_record;
 	if(get_network(id, net_record))	return 0;
@@ -300,9 +333,10 @@ size_t network_out_degree(unsigned long id, const char* label)
  * to zwraca ilość krawędzi wchodzących do tego węzła,
  * a w przeciwnym przypadku zwraca 0.
  */
-size_t network_in_degree(unsigned long id, const char* label)
-{
+size_t network_in_degree(unsigned long id, const char* label){
 	if(debug)	cerr <<"In_degree(" <<id <<" " <<label <<")\n";
+
+	if(is_null(label)) return 0;
 
 	net net_record;
 	if(get_network(id, net_record))	return 0;
