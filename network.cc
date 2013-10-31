@@ -1,10 +1,10 @@
 /**
- * 	TODO LIST (Soszu):
+ *	TODO LIST (Soszu):
  *
  *	sprawdzić działanie gdy nulle
  *	dopisać 3 funkcje
- * 	sprawdzić czy działa
- * 	ewentualne komentarze
+ *	sprawdzić czy działa
+ *	ewentualne komentarze
  */
 
 #ifdef DEBUG
@@ -42,13 +42,17 @@ static const short FIRST_FREE_LABEL_ID = 2;
 static const short LABEL_MAP = 3;
 static const short GRAPH = 4;
 
-static map<net_id, net > data;
 static net_id first_free_id = 0;
 
-bool get_network(unsigned long id, net &net_record){
-	data_iterator iter = data.find(id);
+map<net_id, net >& get_data(){
+	static map<net_id, net > data;
+	return data;
+}
 
-	if (iter == data.end()){
+bool get_network(unsigned long id, net &net_record){
+	data_iterator iter = get_data().find(id);
+
+	if (iter == get_data().end()){
 		if(debug)	cerr <<"Attempt to use non-existing network.\n";
 		return true;
 	}
@@ -57,7 +61,6 @@ bool get_network(unsigned long id, net &net_record){
 }
 
 bool get_node(net n, const char* label, node & node_record){
-
 	label_map lm = get<LABEL_MAP>(n);
 	label_map::iterator l_iter = lm.find(label);
 
@@ -86,7 +89,7 @@ unsigned long network_new(int growing){
 	if(debug)	cerr <<"New(" <<growing <<")\n";
 
 	net empty;
-	data[first_free_id] = empty;
+	get_data()[first_free_id] = empty;
 
 	if(debug)	cerr <<"Network " <<first_free_id <<" created.\n";
 
@@ -101,15 +104,15 @@ unsigned long network_new(int growing){
 void network_delete(unsigned long id){
 	if(debug)	cerr <<"Delete(" <<id <<")\n";
 
-	data_iterator iter = data.find(id);
+	data_iterator iter = get_data().find(id);
 
-	if(iter == data.end()){
+	if(iter == get_data().end()){
 		if(debug)	cerr <<"Attempt to use non-existing network.\n";
 		return;
 	}
 
 	if(debug)	cerr <<"Network " <<id <<" deleted.\n";
-	data.erase(iter);
+	get_data().erase(iter);
 	return;
 }
 

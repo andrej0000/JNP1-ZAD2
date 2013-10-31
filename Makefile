@@ -20,6 +20,7 @@ CC = $(CCOMPILER) $(CFLAGS)
 ALL: switch network.o growingnet.o
 
 switch:
+	echo $(EXT)
 	rm -f growingnet.o network.o
 
 growingnet$(EXT): growingnet.h growingnet.cc network$(EXT)
