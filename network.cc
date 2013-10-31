@@ -1,10 +1,3 @@
-/**
- *	TODO LIST (Soszu):
- *
- *	dopisać 3 funkcje
- *	sprawdzić czy działa
- */
-
 #ifdef DEBUG
 	const bool debug = true;
 #else
@@ -27,8 +20,7 @@ typedef unsigned long net_id;
 typedef size_t label_id;
 
 typedef map<const char*, label_id> label_map;
-typedef pair<label_id, label_id> link;
-typedef pair<set<link>, set<link> > node; //in, out
+typedef pair<set<label_id>, set<label_id> > node; //in, out
 typedef map<label_id, node > graph;
 typedef std::tuple<bool, size_t, size_t, label_map, graph> net;
 
@@ -52,7 +44,7 @@ map<net_id, net >& get_data(){
  * to funkcja zwraca false i net_record przyjmuje wartość danych tej sieci
  * a w przeciwnym wypadku funkcja zwraca true, a wartosć net_record jest nieokreślona
  */
-bool get_network(unsigned long id, net &net_record){
+bool get_network(unsigned long id, net & net_record){
 	data_iterator iter = get_data().find(id);
 
 	if (iter == get_data().end()){
@@ -65,18 +57,31 @@ bool get_network(unsigned long id, net &net_record){
 
 /**
  * jeśli wierzchołek o etykiecie label jest zawarty w sieci id,
- * to funkcja zwraca false i nod_record przyjmuje wartość danych tego wierzchołka
- * a w przeciwnym wypadku funkcja zwraca true, a wartosć node_record jest nieokreślona
+ * to funkcja zwraca false i g_iter przyjmuje wartość itertora na wpis wierzchołka label
+ * a w przeciwnym wypadku funkcja zwraca true, a wartosć g_iter jest nieokreślona
  */
-bool get_node(net n, const char* label, node & node_record){
+bool get_graph_iterator(net n, const char* label, graph::iterator & g_iter){
 	label_map lm = get<LABEL_MAP>(n);
 	label_map::iterator l_iter = lm.find(label);
 
 	if(l_iter == lm.end() ){
-		if(debug)	cerr <<"Attempt to add existing node to network.\n";
+		if(debug)	cerr <<"Attempt to use non-existing node.\n";
 		return true;
 	}
-	node_record = (get<GRAPH>(n).find(l_iter->second))->second;
+	g_iter = get<GRAPH>(n).find(l_iter->second);
+	return false;
+}
+
+/**
+ * jeśli wierzchołek o etykiecie label jest zawarty w sieci id,
+ * to funkcja zwraca false i nod_record przyjmuje wartość danych tego wierzchołka
+ * a w przeciwnym wypadku funkcja zwraca true, a wartosć node_record jest nieokreślona
+ */
+bool get_node(net n, const char* label, node & node_record){
+	graph::iterator g_iter;
+	if(get_graph_iterator(n, label, g_iter))	return true;
+
+	node_record = g_iter->second;
 	return false;
 }
 
@@ -208,15 +213,34 @@ void network_add_node(unsigned long id, const char* label){
  * Jeżeli w sieci nie istnieje węzeł o etykiecie któregoś z końców krawędzi, to jest on również dodawany.
  */
 void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
-	if(debug)	cerr <<"Add_link(" <<id <<" " <<slabel
+	if(debug)	cerr <<"Add_link(" <<id <<" " <<slabel <<" " <<tlabel <<")\n";
 
 	if(is_null(slabel) || is_null(tlabel)) return;
 
 	net net_record;
 	if(get_network(id, net_record))	return;
 
-//TODO: sprawdz czy wierzcholki istnieja (ewentualnie utworz), sprawdz czy istnieje krawedz jeśli nie to utworz
-//zwiększenie liczby krawedzi get<LINKS_NUMBER>(net_record)++;
+	graph::iterator snode_iter, tnode_iter;
+	if(get_graph_iterator(net_record, slabel, snode_iter)){
+		network_add_node(id, slabel);
+		get_graph_iterator(net_record, slabel, snode_iter);
+	}
+	if(get_graph_iterator(net_record, tlabel, tnode_iter)){
+		network_add_node(id, tlabel);
+		get_graph_iterator(net_record, tlabel, tnode_iter);
+	}
+
+	node snode = snode_iter->second, tnode = tnode_iter->second;
+
+	set<label_id>::iterator s_iter = (snode.second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
+	if(s_iter != snode.second.end()){
+		if(debug)	cerr <<"Attempt to add existing link.\n";
+		return;
+	}
+
+	snode.second.insert(tnode_iter->first);
+	tnode.first.insert(snode_iter->first);
+	get<LINKS_NUMBER>(net_record)++;
 
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" added.\n";
 	return;
@@ -239,20 +263,30 @@ void network_remove_node(unsigned long id, const char* label){
 
 	if(!can_remove(net_record)) return;
 
-	label_map lm = get<LABEL_MAP>(net_record);
-	label_map::iterator l_iter = lm.find(label);
+	graph::iterator node_record_iter;
+	if(get_graph_iterator(net_record, label, node_record_iter)) return;
+	node node_record;
+	get_node(net_record, label, node_record);
 
-	if(l_iter == lm.end() ){
-		if(debug)	cerr <<"Attempt to remove non-existing node.\n";
-		return;
+	size_t links_connected_number = node_record.second.size() + node_record.first.size();
+
+	//sprawdzenie czy jest pętla
+	set<label_id>::iterator loop_iter = (node_record.second).find(node_record_iter->first);
+	if(loop_iter != node_record.second.end())	--links_connected_number;
+
+	//usuniencie krawedzi dualnych
+	for(set<label_id>::iterator li = node_record.first.begin(); li != node_record.first.end(); ++li){
+		node other_node = (get<GRAPH>(net_record).find(*li))->second;
+		other_node.second.erase(*li);
+	}
+	for(set<label_id>::iterator li = node_record.second.begin(); li != node_record.second.end(); ++li){
+		node other_node = (get<GRAPH>(net_record).find(*li))->second;
+		other_node.first.erase(*li);
 	}
 
-	get<GRAPH>(net_record).erase( get<GRAPH>(net_record).find(l_iter->second) );
-	//TODO: zebranie czegoś w funkcje
-	//TODO: usuniencie krawedzi dualnych!
-	//get<LINKS_NUMBER>(net_record)-= suma rozmiarów - 1(jeśli pętla)
-	get<LABEL_MAP>(net_record).erase(l_iter);
-
+	get<LINKS_NUMBER>(net_record)-= links_connected_number;
+	get<GRAPH>(net_record).erase(node_record_iter);
+	get<LABEL_MAP>(net_record).erase(label);
 
 	if(debug)	cerr <<"Node " <<label <<" from network " <<id <<" removed.\n";
 	return;
@@ -274,8 +308,21 @@ void network_remove_link(unsigned long id, const char* slabel, const char* tlabe
 
 	if(!can_remove(net_record)) return;
 
-//TODO sprawdz czy oba istnieją, znajdz je i usun (2 wpisy)
-//get<LINKS_NUMBER>(net_record)--;
+	graph::iterator snode_iter, tnode_iter;
+	if(get_graph_iterator(net_record, slabel, snode_iter))	return;
+	if(get_graph_iterator(net_record, tlabel, tnode_iter))	return;
+
+	node snode = snode_iter->second, tnode = tnode_iter->second;
+
+	set<label_id>::iterator s_iter = (snode.second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
+	if(s_iter == snode.second.end()){
+		if(debug)	cerr <<"Attempt to remove non-existing link.\n";
+		return;
+	}
+
+	snode.second.erase(s_iter);
+	tnode.first.erase(snode_iter->first);	//z wchodzących do tnode usuwam snode label_id
+	get<LINKS_NUMBER>(net_record)--;
 
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" removed.\n";
 	return;
