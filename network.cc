@@ -19,7 +19,7 @@ using std::map;
 typedef unsigned long net_id;
 typedef size_t label_id;
 
-typedef map<const char*, label_id> label_map;
+typedef map<std::string, label_id> label_map;
 typedef pair<set<label_id>, set<label_id> > node; //in, out
 typedef map<label_id, node > graph;
 typedef std::tuple<bool, size_t, size_t, label_map, graph> net;
@@ -120,8 +120,8 @@ unsigned long network_new(int growing){
 
 	net empty;
 	get<FIRST_FREE_LABEL_ID>(empty) = 0;
-	get<IS_GROWING>(empty) = growing == 1 ? true : false;
-	get_data()[first_free_id] = empty;
+	get<IS_GROWING>(empty) = growing != 0 ? true : false;
+	get_data().emplace(first_free_id, empty);
 
 	if(debug)	cerr <<"Network " <<first_free_id <<" created.\n";
 
@@ -198,12 +198,14 @@ void network_add_node(unsigned long id, const char* label){
 	node empty_node;
 	if(!get_node(net_record, label, empty_node)) return;
 
-	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net_record)++;
-	get<GRAPH>(net_record)[new_label_id] = empty_node;
-	get<LABEL_MAP>(net_record)[label] = new_label_id;
+	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net_record);
+	cerr << "New node will have id: " << new_label_id << std::endl;
+	get<GRAPH>(net_record).emplace(std::pair<label_id, node>(new_label_id, node()));
+	get<LABEL_MAP>(net_record).emplace(std::pair<std::string, label_id>(label, new_label_id));
 	get<FIRST_FREE_LABEL_ID>(net_record) = new_label_id + 1;
+	cerr << "Next id " << get<FIRST_FREE_LABEL_ID>(net_record) << std::endl;
 	if(debug)	cerr << "Added " << label << " to network " << id << ".\n";
-	
+
 	return;
 }
 
@@ -228,7 +230,6 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 
 	if(get_graph_iterator(net_record, slabel, snode_iter)){
 		network_add_node(id, slabel);
-		
 		cerr << get<FIRST_FREE_LABEL_ID>(net_record);
 		if(get_graph_iterator(net_record, slabel, snode_iter) && debug)
 			cerr << "Fail\n";
