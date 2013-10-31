@@ -3,12 +3,13 @@ CPPFLAGS = -std=c++11
 CCOMPILER = gcc
 CFLAGS = -Wall
 EXT = .o
+.PHONY = clean
 
 ifeq ($(debuglevel), 1)
-	CPPFLAGS += DDEBUG
+	CPPFLAGS += -DDEBUG
 	EXT = .dbg.o
 else
-	CFLAGS += -02	
+	CFLAGS += -O2	
 endif
 
 CPP = $(CPPCOMPILER) $(CFLAGS) $(CPPFLAGS)
@@ -23,3 +24,6 @@ network$(EXT): network.h network.cc
 network_test1: network$(EXT) growingnet$(EXT) network_test1.c
 	$(CC) -c network_test1.c -o network_test1.o
 	$(CXX) network_test1.o network$(EXT) growingnet$(EXT) -o network_test1
+
+clean:
+	-rm *.o
