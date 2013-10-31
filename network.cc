@@ -208,7 +208,7 @@ void network_add_node(unsigned long id, const char* label){
  * Jeżeli w sieci nie istnieje węzeł o etykiecie któregoś z końców krawędzi, to jest on również dodawany.
  */
 void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
-	if(debug)	cerr <<"Add_link(" <<id <<" " <<slabel
+	if(debug)	cerr <<"Add_link(" <<id <<" " <<slabel << " " << tlabel << ")\n";
 
 	if(is_null(slabel) || is_null(tlabel)) return;
 
