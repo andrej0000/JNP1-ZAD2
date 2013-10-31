@@ -119,6 +119,8 @@ unsigned long network_new(int growing){
 	if(debug)	cerr <<"New(" <<growing <<")\n";
 
 	net empty;
+	get<FIRST_FREE_LABEL_ID>(empty) = 0;
+	get<IS_GROWING>(empty) = growing == 1 ? true : false;
 	get_data()[first_free_id] = empty;
 
 	if(debug)	cerr <<"Network " <<first_free_id <<" created.\n";
@@ -194,13 +196,14 @@ void network_add_node(unsigned long id, const char* label){
 	if(get_network(id, net_record))	return;
 
 	node empty_node;
-	if(get_node(net_record, label, empty_node)) return;
+	if(!get_node(net_record, label, empty_node)) return;
 
-	get<GRAPH>(net_record)[FIRST_FREE_LABEL_ID] = empty_node;
-	label_id next_label = get<FIRST_FREE_LABEL_ID>(net_record)++;
-	get<LABEL_MAP>(net_record)[label] = next_label;
-
-	if(debug)	cerr <<"Added " <<label <<" to network " <<id <<".\n";
+	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net_record)++;
+	get<GRAPH>(net_record)[new_label_id] = empty_node;
+	get<LABEL_MAP>(net_record)[label] = new_label_id;
+	get<FIRST_FREE_LABEL_ID>(net_record) = new_label_id + 1;
+	if(debug)	cerr << "Added " << label << " to network " << id << ".\n";
+	
 	return;
 }
 
@@ -220,18 +223,25 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 	net net_record;
 	if(get_network(id, net_record))	return;
 
-	graph::iterator snode_iter, tnode_iter;
+	graph::iterator snode_iter;
+	graph::iterator tnode_iter;
+
 	if(get_graph_iterator(net_record, slabel, snode_iter)){
 		network_add_node(id, slabel);
-		get_graph_iterator(net_record, slabel, snode_iter);
+		
+		cerr << get<FIRST_FREE_LABEL_ID>(net_record);
+		if(get_graph_iterator(net_record, slabel, snode_iter) && debug)
+			cerr << "Fail\n";
 	}
 	if(get_graph_iterator(net_record, tlabel, tnode_iter)){
 		network_add_node(id, tlabel);
-		get_graph_iterator(net_record, tlabel, tnode_iter);
+		if(get_graph_iterator(net_record, tlabel, tnode_iter) && debug)
+			cerr << "Fail\n";
 	}
 
-	node snode = snode_iter->second, tnode = tnode_iter->second;
-
+	node snode = snode_iter->second;
+	node tnode = tnode_iter->second;
+	if (debug)	cerr << "Obtained both nodes\n";
 	set<label_id>::iterator s_iter = (snode.second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
 	if(s_iter != snode.second.end()){
 		if(debug)	cerr <<"Attempt to add existing link.\n";
