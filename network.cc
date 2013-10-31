@@ -73,19 +73,6 @@ bool get_graph_iterator(net n, const char* label, graph::iterator & g_iter){
 }
 
 /**
- * jeśli wierzchołek o etykiecie label jest zawarty w sieci id,
- * to funkcja zwraca false i nod_record przyjmuje wartość danych tego wierzchołka
- * a w przeciwnym wypadku funkcja zwraca true, a wartosć node_record jest nieokreślona
- */
-bool get_node(net n, const char* label, node & node_record){
-	graph::iterator g_iter;
-	if(get_graph_iterator(n, label, g_iter))	return true;
-
-	node_record = g_iter->second;
-	return false;
-}
-
-/**
  * jeśli z sieci mogą być usuwane elementy,
  * to funkcja zwraca true, false wpp.
  */
@@ -121,7 +108,7 @@ unsigned long network_new(int growing){
 	net empty;
 	get<FIRST_FREE_LABEL_ID>(empty) = 0;
 	get<IS_GROWING>(empty) = growing != 0 ? true : false;
-	get_data().emplace(first_free_id, empty);
+	get_data().insert(pair<net_id, net>(first_free_id, empty));
 
 	if(debug)	cerr <<"Network " <<first_free_id <<" created.\n";
 
@@ -195,13 +182,13 @@ void network_add_node(unsigned long id, const char* label){
 	net net_record;
 	if(get_network(id, net_record))	return;
 
-	node empty_node;
-	if(!get_node(net_record, label, empty_node)) return;
+	graph::iterator empty_node_iter;
+	if(!get_graph_iterator(net_record, label, empty_node_iter)) return;
 
 	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net_record);
 	cerr << "New node will have id: " << new_label_id << std::endl;
-	get<GRAPH>(net_record).emplace(std::pair<label_id, node>(new_label_id, node()));
-	get<LABEL_MAP>(net_record).emplace(std::pair<std::string, label_id>(label, new_label_id));
+	get<GRAPH>(net_record).insert(std::pair<label_id, node>(new_label_id, node()));
+	get<LABEL_MAP>(net_record).insert(std::pair<std::string, label_id>(label, new_label_id));
 	get<FIRST_FREE_LABEL_ID>(net_record) = new_label_id + 1;
 	cerr << "Next id " << get<FIRST_FREE_LABEL_ID>(net_record) << std::endl;
 	if(debug)	cerr << "Added " << label << " to network " << id << ".\n";
@@ -240,17 +227,15 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 			cerr << "Fail\n";
 	}
 
-	node snode = snode_iter->second;
-	node tnode = tnode_iter->second;
 	if (debug)	cerr << "Obtained both nodes\n";
-	set<label_id>::iterator s_iter = (snode.second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
-	if(s_iter != snode.second.end()){
+	set<label_id>::iterator s_iter = ((snode_iter->second).second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
+	if(s_iter != (snode_iter->second).second.end()){
 		if(debug)	cerr <<"Attempt to add existing link.\n";
 		return;
 	}
 
-	snode.second.insert(tnode_iter->first);
-	tnode.first.insert(snode_iter->first);
+	(snode_iter->second).second.insert(tnode_iter->first);
+	(tnode_iter->second).first.insert(snode_iter->first);
 	get<LINKS_NUMBER>(net_record)++;
 
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" added.\n";
@@ -276,23 +261,21 @@ void network_remove_node(unsigned long id, const char* label){
 
 	graph::iterator node_record_iter;
 	if(get_graph_iterator(net_record, label, node_record_iter)) return;
-	node node_record;
-	get_node(net_record, label, node_record);
 
-	size_t links_connected_number = node_record.second.size() + node_record.first.size();
+	size_t links_connected_number = (node_record_iter->second).second.size() + (node_record_iter->second).first.size();
 
 	//sprawdzenie czy jest pętla
-	set<label_id>::iterator loop_iter = (node_record.second).find(node_record_iter->first);
-	if(loop_iter != node_record.second.end())	--links_connected_number;
+	set<label_id>::iterator loop_iter = ((node_record_iter->second).second).find(node_record_iter->first);
+	if(loop_iter != (node_record_iter->second).second.end())	--links_connected_number;
 
 	//usuniencie krawedzi dualnych
-	for(set<label_id>::iterator li = node_record.first.begin(); li != node_record.first.end(); ++li){
-		node other_node = (get<GRAPH>(net_record).find(*li))->second;
-		other_node.second.erase(*li);
+	for(set<label_id>::iterator li = (node_record_iter->second).first.begin(); li != (node_record_iter->second).first.end(); ++li){
+		graph::iterator other_node_iter = get<GRAPH>(net_record).find(*li);
+		(other_node_iter->second).second.erase(*li);
 	}
-	for(set<label_id>::iterator li = node_record.second.begin(); li != node_record.second.end(); ++li){
-		node other_node = (get<GRAPH>(net_record).find(*li))->second;
-		other_node.first.erase(*li);
+	for(set<label_id>::iterator li = (node_record_iter->second).second.begin(); li != (node_record_iter->second).second.end(); ++li){
+		graph::iterator other_node_iter = get<GRAPH>(net_record).find(*li);
+		(other_node_iter->second).first.erase(*li);
 	}
 
 	get<LINKS_NUMBER>(net_record)-= links_connected_number;
@@ -323,16 +306,16 @@ void network_remove_link(unsigned long id, const char* slabel, const char* tlabe
 	if(get_graph_iterator(net_record, slabel, snode_iter))	return;
 	if(get_graph_iterator(net_record, tlabel, tnode_iter))	return;
 
-	node snode = snode_iter->second, tnode = tnode_iter->second;
+	node snode = (snode_iter->second), tnode = tnode_iter->second;
 
-	set<label_id>::iterator s_iter = (snode.second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
-	if(s_iter == snode.second.end()){
+	set<label_id>::iterator s_iter = ((snode_iter->second).second).find(tnode_iter->first); //w wychodzących z snode szukam tnode label_id
+	if(s_iter == (snode_iter->second).second.end()){
 		if(debug)	cerr <<"Attempt to remove non-existing link.\n";
 		return;
 	}
 
-	snode.second.erase(s_iter);
-	tnode.first.erase(snode_iter->first);	//z wchodzących do tnode usuwam snode label_id
+	(snode_iter->second).second.erase(s_iter);
+	(tnode_iter->second).first.erase(snode_iter->first);	//z wchodzących do tnode usuwam snode label_id
 	get<LINKS_NUMBER>(net_record)--;
 
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" removed.\n";
@@ -376,10 +359,10 @@ size_t network_out_degree(unsigned long id, const char* label){
 	net net_record;
 	if(get_network(id, net_record))	return 0;
 
-	node node_record;
-	if(get_node(net_record, label, node_record)) return 0;
+	graph::iterator node_record_iter;
+	if(get_graph_iterator(net_record, label, node_record_iter)) return 0;
 
-	size_t degree = node_record.second.size();
+	size_t degree = (node_record_iter->second).second.size();
 
 	if(debug)	cerr <<"Network " <<id <<" contains " <<degree <<"outgoing links from node " <<label <<".\n";
 	return degree;
@@ -399,10 +382,10 @@ size_t network_in_degree(unsigned long id, const char* label){
 	net net_record;
 	if(get_network(id, net_record))	return 0;
 
-	node node_record;
-	if(get_node(net_record, label, node_record)) return 0;
+	graph::iterator node_record_iter;
+	if(get_graph_iterator(net_record, label, node_record_iter)) return 0;
 
-	size_t degree = node_record.first.size();
+	size_t degree = (node_record_iter->second).first.size();
 
 	if(debug)	cerr <<"Network " <<id <<" contains " <<degree <<"ingoing links from node " <<label <<".\n";
 	return degree;
