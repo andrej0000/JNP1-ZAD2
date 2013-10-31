@@ -35,7 +35,7 @@ growingnet.o: growingnet$(EXT) network$(EXT)
 network.o: network$(EXT)
 	cp network$(EXT) network.o
 
-network_test1: network.o growingnet.o network_test1.c
+network_test1: switch network.o growingnet.o network_test1.c
 	$(CC) -c network_test1.c -o network_test1.o
 	$(CXX) network_test1.o network.o growingnet.o -o network_test1
 
