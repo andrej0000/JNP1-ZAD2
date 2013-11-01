@@ -36,7 +36,7 @@ static const short GRAPH = 4;
 static net_id first_free_id = 0;
 
 map<net_id, net >& get_data(){
-	//std::ios_base::init::init();
+	std::ios_base::init::Init i;
 	static map<net_id, net > data;
 	return data;
 }
