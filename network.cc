@@ -189,8 +189,9 @@ void network_add_node(unsigned long id, const char * label){
 
 	label_id new_label_id = get<FIRST_FREE_LABEL_ID>(net_it->second);
 	cerr << "New node will have id: " << new_label_id << std::endl;
-	get<GRAPH>(net_it->second).insert(std::pair<label_id, node>(new_label_id, node()));
-	get<LABEL_MAP>(net_it->second).insert(std::pair<std::string, label_id>(label, new_label_id));
+	get<GRAPH>(net_it->second).emplace(std::pair<label_id, node>(new_label_id, node()));
+	std::string lbl = std::string(label);
+	get<LABEL_MAP>(net_it->second).emplace(std::pair<std::string, label_id>(lbl, new_label_id));
 	get<FIRST_FREE_LABEL_ID>(net_it->second) = new_label_id + 1;
 	cerr << "Next id " << get<FIRST_FREE_LABEL_ID>(net_it->second) << std::endl;
 
@@ -223,11 +224,14 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 		//cerr << get<FIRST_FREE_LABEL_ID>(net_record);
 		if(get_graph_iterator(net_it->second, slabel, snode_iter) && debug)
 			cerr << "Fail\n";
+		if (debug) cerr << slabel << " has id " << snode_iter->first << std::endl;
 	}
 	if(get_graph_iterator(net_it->second, tlabel, tnode_iter)){
 		network_add_node(id, tlabel);
 		if(get_graph_iterator(net_it->second, tlabel, tnode_iter) && debug)
 			cerr << "Fail\n";
+		if (debug) cerr << slabel << " has id " << snode_iter->first << std::endl;
+		if (debug) cerr << tlabel << " has id " << tnode_iter->first << std::endl;
 	}
 
 	if (debug)	cerr << "Obtained both nodes\n";
@@ -236,11 +240,16 @@ void network_add_link(unsigned long id, const char* slabel, const char* tlabel){
 		if(debug)	cerr <<"Attempt to add existing link.\n";
 		return;
 	}
-
+	if (debug) cerr << slabel << " has id " << snode_iter->first << std::endl;
+	if (debug) cerr << tlabel << " has id " << tnode_iter->first << std::endl;
 	(snode_iter->second).second.insert(tnode_iter->first);
 	(tnode_iter->second).first.insert(snode_iter->first);
+	//(get<1>(snode_iter->second)).insert(tlabel);
+	//(get<0>(tnode_iter->second)).insert(slabel);
 	get<LINKS_NUMBER>(net_it->second)++;
-
+	//get_graph_iterator(net_it->second, slabel, snode_iter);
+	if (debug) cerr << slabel << " has " << get<1>(snode_iter->second).size() << std::endl;
+	network_out_degree(id, slabel);
 	if(debug)	cerr <<"Link from" <<slabel <<" to " <<tlabel <<"in network " <<id <<" added.\n";
 	return;
 }
@@ -368,7 +377,7 @@ size_t network_out_degree(unsigned long id, const char* label){
 	graph::iterator node_record_iter;
 	if(get_graph_iterator(net_it->second, label, node_record_iter)) return 0;
 
-	size_t degree = (node_record_iter->second).second.size();
+	size_t degree = get<1>(node_record_iter->second).size();
 
 	if(debug)	cerr <<"Network " <<id <<" contains " <<degree <<"outgoing links from node " <<label <<".\n";
 	return degree;
